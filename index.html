@@ -14,9 +14,7 @@
     }
     .container {
       padding: 10px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      display: block;
       min-height: 100vh;
       box-sizing: border-box;
       padding-bottom: 70px;
@@ -68,13 +66,6 @@
       width: 100%;
       z-index: 999;
     }
-    .character-row {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 20px;
-      flex-wrap: wrap;
-    }
     #nivel-container {
       width: 80%;
       margin: 10px auto;
@@ -97,7 +88,7 @@
 <body>
   <div class="container" id="welcome-screen">
     <h1>🐾 ¡Luci, Sofi... a jugar con las matemáticas! 🦄</h1>
-    <div class="character-row">
+    <div>
       <img src="./carpincho.PNG" alt="Carpincho" class="character">
       <img src="./unicornio.PNG" alt="Unicornio" class="character">
     </div>
@@ -161,14 +152,25 @@
     var aciertos = 0;
     var aciertosParaSubirNivel = 10;
 
+    function hideAll() {
+      var secciones = ['welcome-screen', 'menu-screen', 'game-screen', 'help-screen', 'select-user-screen'];
+      for (var i = 0; i < secciones.length; i++) {
+        var el = document.getElementById(secciones[i]);
+        el.className = "container hidden";
+      }
+    }
+
     function showMenu() {
       hideAll();
-      document.getElementById('select-user-screen').classList.remove('hidden');
+      document.getElementById('select-user-screen').className = "container";
     }
 
     function selectUser(nombre) {
       nombreUsuario = nombre;
-      var datos = JSON.parse(localStorage.getItem('progreso_' + nombre));
+      var datos = null;
+      try {
+        datos = JSON.parse(localStorage.getItem('progreso_' + nombre));
+      } catch (e) {}
       if (datos) {
         nivel = datos.nivel;
         aciertos = datos.aciertos;
@@ -178,32 +180,25 @@
       }
       actualizarNivel();
       hideAll();
-      document.getElementById('menu-screen').classList.remove('hidden');
-      document.getElementById('saludo-usuario').textContent = "Hola hija, ¿vamos a jugar?";
+      document.getElementById('menu-screen').className = "container";
+      document.getElementById('saludo-usuario').innerHTML = "Hola hija, ¿vamos a jugar?";
     }
 
-    function startGame(operator) {
-      currentOperator = operator;
+    function startGame(op) {
+      currentOperator = op;
       hideAll();
-      document.getElementById('game-screen').classList.remove('hidden');
+      document.getElementById('game-screen').className = "container";
       generateQuestion();
     }
 
     function goBack() {
       hideAll();
-      document.getElementById('menu-screen').classList.remove('hidden');
+      document.getElementById('menu-screen').className = "container";
     }
 
     function goToWelcome() {
       hideAll();
-      document.getElementById('welcome-screen').classList.remove('hidden');
-    }
-
-    function hideAll() {
-      var ids = ['welcome-screen', 'menu-screen', 'game-screen', 'help-screen', 'select-user-screen'];
-      for (var i = 0; i < ids.length; i++) {
-        document.getElementById(ids[i]).classList.add('hidden');
-      }
+      document.getElementById('welcome-screen').className = "container";
     }
 
     function generateQuestion() {
@@ -211,47 +206,52 @@
       var b = Math.floor(Math.random() * 10) + 1;
 
       if (currentOperator === '-') {
-        if (b > a) { var temp = a; a = b; b = temp; }
+        if (b > a) {
+          var temp = a;
+          a = b;
+          b = temp;
+        }
         correctAnswer = a - b;
       } else if (currentOperator === '*') {
         correctAnswer = a * b;
       } else if (currentOperator === '/') {
-        correctAnswer = a;
         b = Math.floor(Math.random() * 9) + 1;
-        a = correctAnswer * b;
+        correctAnswer = a;
+        a = a * b;
       } else {
         correctAnswer = a + b;
       }
 
-      document.getElementById('question').textContent = '¿Cuánto es ' + a + ' ' + currentOperator + ' ' + b + '?';
+      document.getElementById('question').innerHTML = '¿Cuánto es ' + a + ' ' + currentOperator + ' ' + b + '?';
 
       var answersDiv = document.getElementById('answers');
       answersDiv.innerHTML = '';
       var options = [correctAnswer];
       while (options.length < 3) {
-        var option = correctAnswer + Math.floor(Math.random() * 10) - 5;
-        if (option >= 0 && options.indexOf(option) === -1) {
-          options.push(option);
+        var opcion = correctAnswer + Math.floor(Math.random() * 10) - 5;
+        if (opcion >= 0 && options.indexOf(opcion) === -1) {
+          options.push(opcion);
         }
       }
+
       options.sort(function () { return 0.5 - Math.random(); });
 
       for (var i = 0; i < options.length; i++) {
         var btn = document.createElement('button');
-        btn.textContent = options[i];
-        btn.onclick = (function (opt) {
-          return function () {
-            checkAnswer(opt);
-          };
-        })(options[i]);
+        btn.innerHTML = options[i];
+        btn.setAttribute('data-value', options[i]);
+        btn.onclick = function () {
+          var valor = parseInt(this.getAttribute('data-value'), 10);
+          checkAnswer(valor);
+        };
         answersDiv.appendChild(btn);
       }
     }
 
-    function checkAnswer(selected) {
+    function checkAnswer(sel) {
       var feedback = document.getElementById('feedback');
-      if (selected === correctAnswer) {
-        feedback.textContent = "¡Muy bien!";
+      if (sel === correctAnswer) {
+        feedback.innerHTML = "¡Muy bien!";
         aciertos++;
         if (aciertos >= aciertosParaSubirNivel) {
           nivel++;
@@ -260,25 +260,34 @@
         }
         actualizarNivel();
       } else {
-        feedback.textContent = "Ups, intentá de nuevo.";
+        feedback.innerHTML = "Ups, intentá de nuevo.";
       }
       setTimeout(function () {
-        feedback.textContent = '';
+        feedback.innerHTML = '';
         generateQuestion();
       }, 2000);
     }
 
     function actualizarNivel() {
-      document.getElementById('nivel-numero').textContent = nivel;
+      document.getElementById('nivel-numero').innerHTML = nivel;
       var progreso = (aciertos / aciertosParaSubirNivel) * 100;
       document.getElementById('nivel-barra').style.width = progreso + '%';
+
+      try {
+        localStorage.setItem('progreso_' + nombreUsuario, JSON.stringify({
+          nivel: nivel,
+          aciertos: aciertos
+        }));
+      } catch (e) {}
     }
 
     function reiniciarProgreso() {
       var nombre = prompt("¿Querés reiniciar el progreso de quién? (Lucía o Sofía)");
       if (nombre === 'Lucía' || nombre === 'Sofía') {
-        localStorage.removeItem('progreso_' + nombre);
-        alert('El progreso de ' + nombre + ' fue reiniciado.');
+        try {
+          localStorage.removeItem('progreso_' + nombre);
+          alert('El progreso de ' + nombre + ' fue reiniciado.');
+        } catch (e) {}
       } else {
         alert("Nombre no válido. Escribí exactamente 'Lucía' o 'Sofía'.");
       }
@@ -286,8 +295,8 @@
 
     function showHelp() {
       hideAll();
-      document.getElementById('help-screen').classList.remove('hidden');
-      document.getElementById('help-text').textContent = '';
+      document.getElementById('help-screen').className = "container";
+      document.getElementById('help-text').innerHTML = '';
     }
 
     function showHelpText(tipo) {
@@ -297,11 +306,11 @@
       } else if (tipo === 'restar') {
         texto = "Restar es sacar. Si tenés 3 caramelos y te comés 2, te queda 1. 🍬🍬🍬 ➖ 🍬🍬 = 🍬";
       } else if (tipo === 'multiplicar') {
-        texto = "Multiplicar es repetir. 3 grupos de 2 cosas cada uno hacen 6. (🍎🍎) (🍎🍎) (🍎🍎)";
+        texto = "Multiplicar es repetir. 3 grupos de 2 cosas hacen 6. (🍎🍎) (🍎🍎) (🍎🍎)";
       } else if (tipo === 'dividir') {
         texto = "Dividir es repartir. Si tenés 6 galletitas y 3 amigas, cada una recibe 2. 🍪🍪🍪🍪🍪🍪 ÷ 3 = 🍪🍪";
       }
-      document.getElementById('help-text').textContent = texto;
+      document.getElementById('help-text').innerHTML = texto;
     }
   </script>
 </body>
