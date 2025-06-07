@@ -1,1 +1,1 @@
-# operaciones-matem-ticas-ipad
+# operaciones-matematicas-ipad
